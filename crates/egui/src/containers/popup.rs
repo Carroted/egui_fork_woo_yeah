@@ -168,6 +168,17 @@ pub fn show_tooltip_at<R>(
     )
 }
 
+pub fn show_tooltip_at_right<R>(
+    ctx: &Context,
+    parent_layer: LayerId,
+    widget_id: Id,
+    suggested_position: Pos2,
+    add_contents: impl FnOnce(&mut Ui) -> R,
+) -> R {
+    let rect = Rect::from_center_size(suggested_position, Vec2::ZERO);
+    show_tooltip_at_dyn_right(ctx, parent_layer, widget_id, &rect, Box::new(add_contents))
+}
+
 fn show_tooltip_at_dyn<'c, R>(
     ctx: &Context,
     parent_layer: LayerId,
