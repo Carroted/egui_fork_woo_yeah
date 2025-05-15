@@ -14,7 +14,7 @@ members = [
     "crates/epaint",
     "crates/epaint_default_fonts",
 
-    "examples/*",
+    #"examples/*",
     "tests/*",
 
     "xtask",

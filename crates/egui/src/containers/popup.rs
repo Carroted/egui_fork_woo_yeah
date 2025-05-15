@@ -130,6 +130,22 @@ pub fn show_tooltip_for<R>(
     )
 }
 
+pub fn show_tooltip_for_right<R>(
+    ctx: &Context,
+    parent_layer: LayerId,
+    widget_id: Id,
+    widget_rect: &Rect,
+    add_contents: impl FnOnce(&mut Ui) -> R,
+) -> R {
+    show_tooltip_at_dyn_right(
+        ctx,
+        parent_layer,
+        widget_id,
+        widget_rect,
+        Box::new(add_contents),
+    )
+}
+
 /// Show a tooltip at the given position.
 ///
 /// Returns `None` if the tooltip could not be placed.
@@ -198,6 +214,72 @@ fn show_tooltip_at_dyn<'c, R>(
         allow_placing_below,
         expected_tooltip_size,
     );
+
+    let InnerResponse { inner, response } = Area::new(tooltip_area_id)
+        .kind(UiKind::Popup)
+        .order(Order::Tooltip)
+        .pivot(pivot)
+        .fixed_pos(anchor)
+        .default_width(ctx.style().spacing.tooltip_width)
+        .sense(Sense::hover()) // don't click to bring to front
+        .show(ctx, |ui| {
+            // By default the text in tooltips aren't selectable.
+            // This means that most tooltips aren't interactable,
+            // which also mean they won't stick around so you can click them.
+            // Only tooltips that have actual interactive stuff (buttons, links, …)
+            // will stick around when you try to click them.
+            ui.style_mut().interaction.selectable_labels = false;
+
+            Frame::popup(&ctx.style()).show_dyn(ui, add_contents).inner
+        });
+
+    state.tooltip_count += 1;
+    state.bounding_rect = state.bounding_rect.union(response.rect);
+    ctx.pass_state_mut(|fs| fs.tooltips.widget_tooltips.insert(widget_id, state));
+
+    inner
+}
+
+fn show_tooltip_at_dyn_right<'c, R>(
+    ctx: &Context,
+    parent_layer: LayerId,
+    widget_id: Id,
+    widget_rect: &Rect,
+    add_contents: Box<dyn FnOnce(&mut Ui) -> R + 'c>,
+) -> R {
+    // Transform layer coords to global coords:
+    let mut widget_rect = *widget_rect;
+    if let Some(to_global) = ctx.layer_transform_to_global(parent_layer) {
+        widget_rect = to_global * widget_rect;
+    }
+
+    remember_that_tooltip_was_shown(ctx);
+
+    let mut state = ctx.pass_state_mut(|fs| {
+        // Remember that this is the widget showing the tooltip:
+        fs.layers
+            .entry(parent_layer)
+            .or_default()
+            .widget_with_tooltip = Some(widget_id);
+
+        fs.tooltips
+            .widget_tooltips
+            .get(&widget_id)
+            .copied()
+            .unwrap_or(PerWidgetTooltipState {
+                bounding_rect: widget_rect,
+                tooltip_count: 0,
+            })
+    });
+
+    let tooltip_area_id = tooltip_id(widget_id, state.tooltip_count);
+    let expected_tooltip_size = AreaState::load(ctx, tooltip_area_id)
+        .and_then(|area| area.size)
+        .unwrap_or(vec2(64.0, 32.0));
+
+    let screen_rect = ctx.screen_rect();
+
+    let (pivot, anchor) = (Align2::LEFT_TOP, widget_rect.right_top() + 4. * Vec2::RIGHT);
 
     let InnerResponse { inner, response } = Area::new(tooltip_area_id)
         .kind(UiKind::Popup)

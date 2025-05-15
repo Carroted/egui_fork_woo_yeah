@@ -596,6 +596,16 @@ impl Response {
         );
     }
 
+    pub fn show_tooltip_ui_right(&self, add_contents: impl FnOnce(&mut Ui)) {
+        crate::containers::show_tooltip_for_right(
+            &self.ctx,
+            self.layer_id,
+            self.id,
+            &self.rect,
+            add_contents,
+        );
+    }
+
     /// Always show this tooltip, even if disabled and the user isn't hovering it.
     ///
     /// This can be used to give attention to a widget during a tutorial.
