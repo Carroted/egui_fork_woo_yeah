@@ -158,7 +158,7 @@ pub fn show_tooltip_at_right<R>(
     widget_id: Id,
     suggested_position: Pos2,
     add_contents: impl FnOnce(&mut Ui) -> R,
-    shower: Box<dyn FnOnce(Area) -> InnerResponse<R>>,
+    shower: Box<dyn FnOnce((&Context, Area)) -> InnerResponse<R>>,
 ) -> R {
     let rect = Rect::from_center_size(suggested_position, Vec2::ZERO);
     show_tooltip_at_dyn_right(
@@ -249,7 +249,7 @@ pub fn show_tooltip_at_dyn_right<'c, R>(
     widget_id: Id,
     widget_rect: &Rect,
     add_contents: Box<dyn FnOnce(&mut Ui) -> R + 'c>,
-    shower: Box<dyn FnOnce(Area) -> InnerResponse<R> + 'c>,
+    shower: Box<dyn FnOnce((&Context, Area)) -> InnerResponse<R> + 'c>,
 ) -> R {
     // Transform layer coords to global coords:
     let mut widget_rect = *widget_rect;
@@ -286,23 +286,26 @@ pub fn show_tooltip_at_dyn_right<'c, R>(
     let (pivot, anchor) = (Align2::LEFT_TOP, widget_rect.right_top() + 4. * Vec2::RIGHT);
 
     let InnerResponse { inner, response } = shower(
-        Area::new(tooltip_area_id)
-            .kind(UiKind::Popup)
-            .order(Order::Tooltip)
-            .pivot(pivot)
-            .fixed_pos(anchor)
-            .default_width(ctx.style().spacing.tooltip_width)
-            .sense(Sense::hover()), // don't click to bring to front
-                                    /*.show(ctx, |ui| {
-                                        // By default the text in tooltips aren't selectable.
-                                        // This means that most tooltips aren't interactable,
-                                        // which also mean they won't stick around so you can click them.
-                                        // Only tooltips that have actual interactive stuff (buttons, links, …)
-                                        // will stick around when you try to click them.
-                                        ui.style_mut().interaction.selectable_labels = false;
+        (
+            ctx,
+            Area::new(tooltip_area_id)
+                .kind(UiKind::Popup)
+                .order(Order::Tooltip)
+                .pivot(pivot)
+                .fixed_pos(anchor)
+                .default_width(ctx.style().spacing.tooltip_width)
+                .sense(Sense::hover()),
+        ), // don't click to bring to front
+           /*.show(ctx, |ui| {
+               // By default the text in tooltips aren't selectable.
+               // This means that most tooltips aren't interactable,
+               // which also mean they won't stick around so you can click them.
+               // Only tooltips that have actual interactive stuff (buttons, links, …)
+               // will stick around when you try to click them.
+               ui.style_mut().interaction.selectable_labels = false;
 
-                                        Frame::popup(&ctx.style()).show_dyn(ui, add_contents).inner
-                                    }),*/
+               Frame::popup(&ctx.style()).show_dyn(ui, add_contents).inner
+           }),*/
     );
 
     state.tooltip_count += 1;
