@@ -444,12 +444,14 @@ impl Area {
         }
 
         if let Some((anchor, offset)) = anchor {
-            state.set_left_top_pos(
-                anchor
-                    .align_size_within_rect(size, constrain_rect)
-                    .left_top()
-                    + offset,
-            );
+            if !sizing_pass {
+                state.set_left_top_pos(
+                    anchor
+                        .align_size_within_rect(size, constrain_rect)
+                        .left_top()
+                        + offset,
+                );
+            }
         }
 
         // interact right away to prevent frame-delay
